@@ -1,0 +1,18 @@
+# Runs the project's lint and test targets before every commit.
+# One-time setup per clone: pip install pre-commit && pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: make-lint
+        name: make lint
+        entry: make lint
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: make-test
+        name: make test
+        entry: make test
+        language: system
+        pass_filenames: false
+        always_run: true
