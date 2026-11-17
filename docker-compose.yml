@@ -1,0 +1,47 @@
+name: smartcart-ai
+
+# Local development only. Ports bind to 127.0.0.1 so nothing is exposed on the LAN.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: smartcart
+      POSTGRES_USER: smartcart
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      # Host port is configurable: 5432 is often taken by a local Postgres install.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcart -d smartcart"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      SMARTCART_DATABASE_URL: postgresql+psycopg://smartcart:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/smartcart
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
